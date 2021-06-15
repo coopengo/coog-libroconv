@@ -32,7 +32,7 @@ def convert(output_format, out_dir, path, options):
         cmd += [
             f'--infilter="Text - txt - csv (StarCalc):{ascii_value},34,76,"']
     check_call(cmd, timeout=libreoffice_timeout,
-            stderr=DEVNULL if debug else None)
+            stderr=None if debug else DEVNULL)
 
 
 class Converter(Resource):
