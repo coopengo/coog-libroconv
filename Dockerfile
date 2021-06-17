@@ -28,6 +28,6 @@ USER coog
 EXPOSE 5000
 
 # Startup
-ENTRYPOINT uwsgi --plugins http,python3 --http 0.0.0.0:5000 --master --wsgi-file convert_app.py --callable app --processes 8 --post-buffering 50000 --http-timeout 120
+CMD ["uwsgi", "--plugins", "http,python3", "--http", "0.0.0.0:5000", "--master", "--wsgi-file", "convert_app.py", "--callable", "app", "--processes", "8", "--post-buffering", "50000", "--http-timeout", "120"]
 #ENTRYPOINT uwsgi --version
 #ENTRYPOINT python --version
