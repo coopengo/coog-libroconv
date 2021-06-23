@@ -17,7 +17,7 @@ libreoffice_timeout = os.environ.get('LIBRE_OFFICE_TIMEOUT', 60 * 3)
 debug = os.environ.get('DEBUG_LIBREOFFICE', False)
 
 
-def convert(output_format, out_dir, path, options):
+def call_libreoffice(output_format, out_dir, path, options):
     cmd = ['soffice'] + [
         '--headless',
         '--safe-mode',
@@ -35,6 +35,27 @@ def convert(output_format, out_dir, path, options):
             stderr=None if debug else DEVNULL)
 
 
+def convert(output_format, out_dir, path, options):
+    in_stem = path.stem
+    output_file_path = Path(out_dir) / (in_stem + '.' + output_format)
+    try_count = 0
+    while try_count < max_try:
+        try_count += 1
+        try:
+            call_libreoffice(output_format, out_dir, path, options)
+        except (CalledProcessError, TimeoutExpired) as e:
+            print(e)
+        if output_file_path.exists():
+            # yes, libreoffice can return 0 as exit code
+            # and the file still be absent
+            converted_data = output_file_path.open('rb').read()
+            shutil.rmtree(out_dir)
+            return converted_data
+        time.sleep(0.1)
+    else:
+        abort(400, description=f'Tried {try_count} times. Aborting')
+
+
 class Converter(Resource):
 
     def post(self, output_format):
@@ -42,25 +63,8 @@ class Converter(Resource):
         options = request.form
         tmp_dir = tempfile.mkdtemp(prefix='libre')
         in_path = tmp_dir / Path(file_.filename)
-        in_stem = in_path.stem
         file_.save(in_path)
-        output_path = Path(tmp_dir) / (in_stem + '.' + output_format)
-        try_count = 0
-        while try_count < max_try:
-            try_count += 1
-            try:
-                convert(output_format, tmp_dir, in_path, options)
-            except (CalledProcessError, TimeoutExpired) as e:
-                print(e)
-            if output_path.exists():
-                # yes, libreoffice can return 0 as exit code
-                # and the file still be absent
-                break
-            time.sleep(0.1)
-        else:
-            abort(400, description=f'Tried {try_count} times. Aborting')
-        converted_data = output_path.open('rb').read()
-        shutil.rmtree(tmp_dir)
+        converted_data = convert(output_format, tmp_dir, in_path, options)
         response = make_response(converted_data)
         response.headers['Content-Type'] = "application/octet-stream"
         response.headers['Content-Disposition'] = \
@@ -70,7 +74,9 @@ class Converter(Resource):
 
 @app.route("/liveness")
 def liveness():
-    # we only check that uwsgi and flask app are alive
+    tmp_dir = tempfile.mkdtemp(prefix='test')
+    in_path = Path('/app/tests/test_liveness.odt')
+    convert('pdf', tmp_dir, in_path, {})
     return "ok"
 
 

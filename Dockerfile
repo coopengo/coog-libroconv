@@ -10,9 +10,11 @@ RUN apt-get update && apt upgrade -y \
     libreoffice-impress
 
 RUN mkdir /app
+RUN mkdir /app/tests
 WORKDIR /app
 COPY ./requirements.txt /tmp/requirements.txt
 COPY ./convert_app.py /app/convert_app.py
+COPY ./tests/test_liveness.odt /app/tests/test_liveness.odt
 
 RUN set -eux \
     && adduser --uid 1000 coog --disabled-login \
