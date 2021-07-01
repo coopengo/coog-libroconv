@@ -11,16 +11,25 @@ RUN apt-get update && apt upgrade -y \
 
 RUN mkdir /app
 RUN mkdir /app/tests
+RUN mkdir /home/coog/
+RUN mkdir /home/coog_saas/
 WORKDIR /app
 COPY ./requirements.txt /tmp/requirements.txt
 COPY ./convert_app.py /app/convert_app.py
 COPY ./tests/test_liveness.odt /app/tests/test_liveness.odt
 
-RUN set -eux \
-    && adduser --uid 1000 coog --disabled-login \
-    && chown coog:coog /app -R \
-    && chmod -R 771 /app -R \
-    && ln -s /usr/bin/python3 /usr/bin/python
+RUN set -eux; \
+    groupadd -g 1003 coog; \
+    groupadd -g 1000 coog_saas; \
+    useradd -u 1003 -g coog -G coog,coog_saas coog; \
+    useradd -u 1000 -g coog_saas -G coog,coog_saas coog_saas; \
+    chown coog:coog /app -R; \
+    chown coog:coog /home/coog -R; \
+    chown coog:coog /home/coog_saas -R; \
+    chmod -R 771 /app;  \
+    chmod -R 2771 /home/coog;  \
+    chmod -R 2771 /home/coog_saas;  \
+    ln -s /usr/bin/python3 /usr/bin/python;
 
 
 RUN pip3 install -r /tmp/requirements.txt
