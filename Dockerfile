@@ -17,6 +17,7 @@ WORKDIR /app
 COPY ./requirements.txt /tmp/requirements.txt
 COPY ./convert_app.py /app/convert_app.py
 COPY ./tests/test_liveness.odt /app/tests/test_liveness.odt
+COPY ep.sh /usr/bin/
 
 RUN set -eux; \
     groupadd -g 1003 coog; \
@@ -39,4 +40,4 @@ USER coog
 EXPOSE 5000
 
 # Startup
-ENTRYPOINT uwsgi --plugins http,python3 --http 0.0.0.0:5000 --master --wsgi-file convert_app.py --callable app --processes 8 --post-buffering 50000 --http-timeout 120 --http-keepalive --so-keepalive
+ENTRYPOINT ep.sh
