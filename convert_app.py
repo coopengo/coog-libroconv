@@ -51,8 +51,8 @@ def convert(output_format, out_dir, path, options):
             shutil.rmtree(out_dir)
             return converted_data
         else:
-            message = (f"Libreoffice returned 0, but no converted file was found"
-                f" [trial number {try_count}]")
+            message = (f"Libreoffice was successfully called, but no converted file was found"
+                f" [try number {try_count}]")
             print(message, file=sys.stderr)
         time.sleep(0.1)
     else:
