@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import tempfile
 import shutil
@@ -14,7 +15,6 @@ api = Api(app)
 
 max_try = os.environ.get('MAX_RETRY', 10)
 libreoffice_timeout = os.environ.get('LIBRE_OFFICE_TIMEOUT', 60 * 3)
-debug = os.environ.get('DEBUG_LIBREOFFICE', False)
 
 
 def call_libreoffice(output_format, out_dir, path, options):
@@ -31,8 +31,7 @@ def call_libreoffice(output_format, out_dir, path, options):
         ascii_value = str(ord(separator))
         cmd += [
             f'--infilter="Text - txt - csv (StarCalc):{ascii_value},34,76,"']
-    check_call(cmd, timeout=libreoffice_timeout,
-            stderr=None if debug else DEVNULL)
+    check_call(cmd, timeout=libreoffice_timeout)
 
 
 def convert(output_format, out_dir, path, options):
@@ -44,13 +43,17 @@ def convert(output_format, out_dir, path, options):
         try:
             call_libreoffice(output_format, out_dir, path, options)
         except (CalledProcessError, TimeoutExpired) as e:
-            print(e)
+            print(e, file=sys.stderr)
         if output_file_path.exists():
             # yes, libreoffice can return 0 as exit code
             # and the file still be absent
             converted_data = output_file_path.open('rb').read()
             shutil.rmtree(out_dir)
             return converted_data
+        else:
+            message = (f"Libreoffice was successfully called, but no converted file was found"
+                f" [try number {try_count}]")
+            print(message, file=sys.stderr)
         time.sleep(0.1)
     else:
         abort(400, description=f'Tried {try_count} times. Aborting')
