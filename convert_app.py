@@ -31,7 +31,7 @@ def call_libreoffice(output_format, out_dir, path, options):
         ascii_value = str(ord(separator))
         cmd += [
             f'--infilter="Text - txt - csv (StarCalc):{ascii_value},34,76,"']
-    # SECURIY: please never add shell=True to check_call
+    # SECURITY: please never add shell=True to check_call
     check_call(cmd, timeout=libreoffice_timeout)
 
 
