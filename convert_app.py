@@ -106,19 +106,6 @@ class Converter(Resource):
     def post(self, output_format):
         return self._convert_file(output_format, namespace=None)
 
-        file_ = request.files["file"]
-        options = request.form
-        tmp_dir = tempfile.mkdtemp(prefix="libre")
-        in_path = tmp_dir / Path(file_.filename)
-        file_.save(in_path)
-        converted_data = convert(output_format, tmp_dir, in_path, options)
-        response = make_response(converted_data)
-        response.headers["Content-Type"] = "application/octet-stream"
-        response.headers["Content-Disposition"] = (
-            "inline; filename=converted.%s" % (output_format,)
-        )
-        return response
-
     def _convert_file(self, output_format, namespace=None):
         file_ = request.files["file"]
         options = request.form
