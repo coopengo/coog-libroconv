@@ -18,6 +18,9 @@ COPY ./requirements.txt /tmp/requirements.txt
 COPY ./convert_app.py /app/convert_app.py
 COPY ./tests/test_liveness.odt /app/tests/test_liveness.odt
 COPY ep.sh /usr/bin/
+COPY ./fonts/. /usr/share/fonts/truetype/
+
+RUN fc-cache -fv
 
 RUN set -eux; \
     groupadd -g 1003 coog; \
@@ -33,7 +36,7 @@ RUN set -eux; \
     ln -s /usr/bin/python3 /usr/bin/python;
 
 
-RUN pip3 install -r /tmp/requirements.txt
+RUN pip3 install --break-system-packages  -r /tmp/requirements.txt
 
 USER coog
 
