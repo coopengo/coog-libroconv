@@ -3,6 +3,7 @@ import sys
 import time
 import tempfile
 import shutil
+import zipfile
 from pathlib import Path
 from subprocess import check_call, CalledProcessError, TimeoutExpired, DEVNULL
 from flask import Flask, request, abort
@@ -68,6 +69,34 @@ def call_libreoffice(output_format, out_dir, path, options):
     check_call(cmd, timeout=libreoffice_timeout)
 
 
+def remove_duplicate_zip_entries(path):
+    # LibreOffice >= 24 refuses a document whose zip package holds the same
+    # entry twice ("source file could not be loaded"), older versions loaded it.
+    # Coog's style template merge can write a picture twice: keep one copy of
+    # each entry, the last one (what zipfile reads), at its first position.
+    if not zipfile.is_zipfile(path):
+        return
+    with zipfile.ZipFile(path) as zin:
+        entries = zin.infolist()
+        last = {entry.filename: entry for entry in entries}
+        if len(last) == len(entries):
+            return
+        deduplicated = path.with_name(path.name + ".dedup")
+        with zipfile.ZipFile(deduplicated, "w") as zout:
+            written = set()
+            for entry in entries:
+                if entry.filename in written:
+                    continue
+                written.add(entry.filename)
+                kept = last[entry.filename]
+                zout.writestr(kept, zin.read(kept))
+    deduplicated.replace(path)
+    print(
+        f"{path.name}: {len(entries) - len(last)} duplicate zip entries removed",
+        file=sys.stderr,
+    )
+
+
 def convert(output_format, out_dir, path, options):
     in_stem = path.stem
     output_file_path = Path(out_dir) / (in_stem + "." + output_format)
@@ -113,6 +142,7 @@ class Converter(Resource):
         try:
             in_path = tmp_dir / Path(file_.filename)
             file_.save(str(in_path))
+            remove_duplicate_zip_entries(in_path)
             converted_data = convert(output_format, tmp_dir, in_path, options)
             response = make_response(converted_data)
             response.headers["Content-Type"] = "application/octet-stream"
